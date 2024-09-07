@@ -78,7 +78,7 @@
             // Затемнение экрана при уровне освещенности меньше 130 
             if (averageBrightness < 130) { 
                 const opacity = Math.max(0, (130 - averageBrightness) / 130); 
-                overlay.style.backgroundColor = rgba(0, 0, 0, opacity); 
+                overlay.style.backgroundColor = rgba(0, 0, 0, ${opacity}); 
             } else { 
                 overlay.style.backgroundColor = 'rgba(0, 0, 0, 0)'; 
             } 

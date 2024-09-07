@@ -45,27 +45,53 @@
     <div id="overlay"></div>
     <p id="light-level">Уровень освещенности:</p>
     <script>
-             const lightSensor = new AmbientLightSensor();
+          const video = document.getElementById('video');
+          const canvas = document.getElementById('canvas');
+          const context = canvas.getContext('2d');
+          const lightLevelDisplay = document.getElementById('light-level');
+          const overlay = document.getElementById('overlay');
 
-      lightSensor.onreading = () => {
-          const lightLevel = lightSensor.illuminance;
-          lightLevelDisplay.textContent = 'Уровень освещенности: ' + lightLevel.toFixed(2);
+          // Запрос доступа к камере
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => {
+          video.srcObject = stream;
+          analyzeLight();
+      })
+      .catch(error => {
+          console.error('Ошибка доступа к камере:', error);
+          lightLevelDisplay.textContent = 'Ошибка доступа к камере. Пожалуйста, проверьте разрешения.';
+      });
 
-          // Здесь можно добавить логику для затемнения экрана в зависимости от уровня освещенности
-          if (lightLevel < 130) {
-              const opacity = Math.max(0, (130 - lightLevel) / 130);
-              overlay.style.backgroundColor = rgba(0, 0, 0, ${opacity});
-          } else {
-              overlay.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+          function analyzeLight() {
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const frame = context.getImageData(0, 0, canvas.width, canvas.height);
+              const data = frame.data;
+              let totalBrightness = 0;
+              const pixelCount = data.length / 4; // 4 канала (RGBA)
+
+              for (let i = 0; i < data.length; i += 4) {
+                  // Вычисляем яркость пикселя
+                  const r = data[i];     // Красный
+                  const g = data[i + 1]; // Зеленый
+                  const b = data[i + 2]; // Синий
+                  const brightness = (r + g + b) / 3; // Простое усреднение
+                  totalBrightness += brightness;
+              }
+
+              const averageBrightness = totalBrightness / pixelCount;
+              lightLevelDisplay.textContent = 'Уровень освещенности: ' + averageBrightness.toFixed(2);
+
+              // Затемнение экрана при уровне освещенности меньше 130
+              if (averageBrightness < 130) {
+                  const opacity = Math.max(0, (130 - averageBrightness) / 130);
+                  overlay.style.backgroundColor = rgba(0, 0, 0, ${opacity});
+              } else {
+                  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+              }
+
+              // Повторный анализ через 100 мс (0.1 секунда) для более плавного эффекта
+              setTimeout(analyzeLight, 100);
           }
-      };
-
-      lightSensor.onerror = error => {
-          console.error('Ошибка чтения с датчика освещенности:', error);
-          lightLevelDisplay.textContent = 'Ошибка чтения сенсора освещенности.';
-      };
-
-      lightSensor.start();
     </script>
   </body>
 </html>
